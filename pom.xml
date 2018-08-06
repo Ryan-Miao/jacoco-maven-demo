@@ -11,6 +11,12 @@
   <properties>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
+    <jacoco.skip>false</jacoco.skip>
+    <jacoco.percentage.complexity>0</jacoco.percentage.complexity>
+    <jacoco.percentage.instruction>0</jacoco.percentage.instruction>
+    <jacoco.percentage.branch>0</jacoco.percentage.branch>
+    <skip.unit.tests>false</skip.unit.tests>
+    <testFailureIgnore>false</testFailureIgnore>
   </properties>
 
   <dependencies>
@@ -30,6 +36,32 @@
 
   <build>
     <plugins>
+      <!-- 执行unit test测试，并生成报告，当有失败的时候停止install-->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <skip>${skip.unit.tests}</skip>
+          <testFailureIgnore>${testFailureIgnore}</testFailureIgnore>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-report-plugin</artifactId>
+        <version>2.18.1</version>
+        <executions>
+          <execution>
+            <id>report</id>
+            <!-- 要绑定到的生命周期的阶段 -->
+            <phase>install</phase>
+            <goals>
+              <!-- 要绑定的插件的目标 -->
+              <goal>report</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
       <plugin>
         <groupId>org.jacoco</groupId>
         <artifactId>jacoco-maven-plugin</artifactId>
@@ -75,37 +107,37 @@
                     <limit implementation="org.jacoco.report.check.Limit">
                       <counter>COMPLEXITY</counter>
                       <value>COVEREDRATIO</value>
-                      <minimum>0.60</minimum>
+                      <minimum>${jacoco.percentage.complexity}</minimum>
                     </limit>
                     <!-- 字节码覆盖 -->
                     <limit implementation="org.jacoco.report.check.Limit">
                       <counter>INSTRUCTION</counter>
                       <value>COVEREDRATIO</value>
-                      <minimum>0.60</minimum>
+                      <minimum>${jacoco.percentage.instruction}</minimum>
                     </limit>
                     <!-- 行覆盖，几乎等于INSTRUCTION-->
                     <limit implementation="org.jacoco.report.check.Limit">
                       <counter>LINE</counter>
                       <value>COVEREDRATIO</value>
-                      <minimum>0.60</minimum>
+                      <minimum>${jacoco.percentage.instruction}</minimum>
                     </limit>
                     <!-- 分支覆盖-->
                     <limit implementation="org.jacoco.report.check.Limit">
                       <counter>BRANCH</counter>
                       <value>COVEREDRATIO</value>
-                      <minimum>0.50</minimum>
+                      <minimum>${jacoco.percentage.branch}</minimum>
                     </limit>
                     <!-- 方法覆盖 -->
                     <limit implementation="org.jacoco.report.check.Limit">
                       <counter>METHOD</counter>
                       <value>COVEREDRATIO</value>
-                      <minimum>0.60</minimum>
+                      <minimum>0</minimum>
                     </limit>
                     <!-- 类覆盖 -->
                     <limit implementation="org.jacoco.report.check.Limit">
                       <counter>CLASS</counter>
                       <value>COVEREDRATIO</value>
-                      <minimum>0.60</minimum>
+                      <minimum>0</minimum>
                     </limit>
                   </limits>
                 </rule>
@@ -114,7 +146,112 @@
           </execution>
         </executions>
       </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-pmd-plugin</artifactId>
+        <version>3.3</version>
+        <configuration>
+          <rulesets>
+            <ruleset>build/pmd.xml</ruleset>
+          </rulesets>
+          <targetJdk>1.8</targetJdk>
+          <verbose>true</verbose>
+        </configuration>
+        <executions>
+          <execution>
+            <phase>verify</phase>
+            <goals>
+              <goal>check</goal>
+              <goal>cpd-check</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-checkstyle-plugin</artifactId>
+        <version>3.0.0</version>
+        <configuration>
+          <configLocation>${project.basedir}/build/check-style.xml</configLocation>
+          <includeTestSourceDirectory>true</includeTestSourceDirectory>
+          <suppressionsLocation>${project.basedir}/build/check-style-suppression.xml
+          </suppressionsLocation>
+          <consoleOutput>true</consoleOutput>
+          <failsOnError>false</failsOnError>
+        </configuration>
+        <executions>
+          <execution>
+            <phase>verify</phase>
+            <goals>
+              <goal>checkstyle</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>findbugs-maven-plugin</artifactId>
+        <version>3.0.4</version>
+        <configuration>
+          <excludeFilterFile>build/find-bugs-exclude-filter.xml</excludeFilterFile>
+          <findbugsXmlOutputDirectory>
+            ${project.build.directory}/site/findbugs
+          </findbugsXmlOutputDirectory>
+          <failOnError>false</failOnError>
+        </configuration>
+        <executions>
+          <execution>
+            <phase>verify</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>xml-maven-plugin</artifactId>
+        <version>1.0</version>
+        <executions>
+          <execution>
+            <phase>verify</phase>
+            <goals>
+              <goal>transform</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <transformationSets>
+            <transformationSet>
+              <dir>${project.build.directory}/site/findbugs</dir>
+              <outputDir>${project.build.directory}/site/findbugs</outputDir>
+              <stylesheet>fancy-hist.xsl</stylesheet>
+              <!--<stylesheet>default.xsl</stylesheet>-->
+              <!--<stylesheet>plain.xsl</stylesheet>-->
+              <!--<stylesheet>fancy.xsl</stylesheet>-->
+              <!--<stylesheet>summary.xsl</stylesheet>-->
+              <fileMappers>
+                <fileMapper
+                  implementation="org.codehaus.plexus.components.io.filemappers.FileExtensionMapper">
+                  <targetExtension>.html</targetExtension>
+                </fileMapper>
+              </fileMappers>
+            </transformationSet>
+          </transformationSets>
+        </configuration>
+        <dependencies>
+          <dependency>
+            <groupId>com.google.code.findbugs</groupId>
+            <artifactId>findbugs</artifactId>
+            <version>3.0.1</version>
+          </dependency>
+        </dependencies>
+      </plugin>
     </plugins>
+
   </build>
 
 

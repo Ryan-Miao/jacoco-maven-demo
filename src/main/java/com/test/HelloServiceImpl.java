@@ -5,6 +5,10 @@ package com.test;
  **/
 public class HelloServiceImpl implements HelloService {
 
+    /**
+     * test.
+     */
+    @Override
     public String hi(String msg) {
         if (msg == null) {
             return "null";
